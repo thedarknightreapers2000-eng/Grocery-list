@@ -1,2 +1,0 @@
-# Grocery-list
-Grocery list
