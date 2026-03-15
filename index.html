@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>ದಿನಸಿ ಪಟ್ಟಿ – Grocery List</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#d4541a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ದಿನಸಿ ಪಟ್ಟಿ"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png"/>
+
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Tamma+2:wght@400;500;600;700;800&family=Noto+Sans+Kannada:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#fdf6ee;--surface:#fff9f2;--card:#fff;
+  --accent:#d4541a;--accent2:#2a7d4f;
+  --rem:#7c3aed;--rem-bg:#f3f0ff;--rem-border:#c4b5fd;
+  --edit:#1d6fb8;--edit-bg:#eff6ff;--edit-border:#93c5fd;
+  --text:#1a1209;--text2:#5c4a30;--text3:#9c8060;
+  --border:#e8d9c4;--tag-bg:#fdf0e4;
+  --shadow:0 2px 16px rgba(60,30,10,.08);
+  --r:14px;--rsm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans Kannada','Baloo Tamma 2',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+header{background:var(--accent);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:100;box-shadow:0 2px 14px rgba(180,60,10,.2);}
+.logo{font-family:'Baloo Tamma 2',sans-serif;font-size:20px;font-weight:800;color:#fff;display:flex;align-items:center;gap:10px;}
+.logo-sub{font-size:11px;font-weight:400;opacity:.85;margin-top:1px;}
+.hacts{display:flex;gap:7px;}
+.hbtn{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.32);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:background .15s;white-space:nowrap;}
+.hbtn:hover{background:rgba(255,255,255,.26);}
+.hbtn-rem{background:var(--rem);border-color:rgba(255,255,255,.3);position:relative;}
+.hbtn-rem:hover{background:#6d28d9;}
+#rbadge{display:none;position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;border-radius:99px;font-size:9px;font-weight:700;padding:1px 5px;min-width:15px;text-align:center;}
+
+/* PROGRESS */
+.progbar{background:#fff3e8;border-bottom:1px solid var(--border);padding:9px 20px;display:flex;align-items:center;gap:14px;}
+.prog-label{font-size:12px;color:var(--text2);min-width:110px;}
+.prog-track{flex:1;height:7px;background:var(--border);border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent2),#4caf80);border-radius:99px;transition:width .4s;}
+.prog-pct{font-size:12px;font-weight:600;color:var(--accent2);min-width:34px;text-align:right;}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:300px 1fr 280px;max-width:1440px;margin:0 auto;padding:20px 14px;align-items:start;gap:0;}
+
+/* SIDEBAR */
+.sidebar{position:sticky;top:84px;max-height:calc(100vh - 92px);overflow-y:auto;padding-right:3px;}
+.sidebar::-webkit-scrollbar{width:3px;}.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.sc h3{font-family:'Baloo Tamma 2',sans-serif;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:11px;}
+
+/* FORM */
+.fg{margin-bottom:8px;}
+.fg label{font-size:11px;color:var(--text3);margin-bottom:3px;display:block;font-weight:500;}
+.fg input,.fg select{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:var(--rsm);font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s;}
+.fg input:focus,.fg select:focus{border-color:var(--accent);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.btn-add{width:100%;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:3px;transition:background .15s,transform .1s;}
+.btn-add:hover{background:#b8430f;}.btn-add:active{transform:scale(.98);}
+
+/* EDIT PANEL (in sidebar, replaces add form when editing) */
+.edit-panel{display:none;background:var(--edit-bg);border:1.5px solid var(--edit-border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.edit-panel.active{display:block;}
+.edit-panel h3{font-family:'Baloo Tamma 2',sans-serif;font-size:12px;font-weight:700;color:var(--edit);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;}
+.edit-item-label{font-size:13px;font-weight:600;color:var(--text);background:#fff;border:1px solid var(--edit-border);border-radius:var(--rsm);padding:7px 10px;margin-bottom:11px;display:flex;align-items:center;gap:6px;}
+.edit-item-label span{color:var(--edit);font-size:11px;font-weight:400;}
+.edit-panel .fg label{color:#1e40af;}
+.edit-panel .fg input,.edit-panel .fg select{border-color:var(--edit-border);background:#fff;}
+.edit-panel .fg input:focus,.edit-panel .fg select:focus{border-color:var(--edit);}
+.edit-panel-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px;}
+.btn-save{padding:9px;background:var(--edit);color:#fff;border:none;border-radius:var(--rsm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;}
+.btn-save:hover{background:#1558a0;}
+.btn-cancel{padding:9px;background:#fff;color:var(--text2);border:1.5px solid var(--edit-border);border-radius:var(--rsm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-cancel:hover{background:#fee2e2;color:#b91c1c;border-color:#fca5a5;}
+.ep-note{font-size:11px;color:#3b82f6;margin-bottom:10px;background:#dbeafe;border-radius:5px;padding:5px 8px;line-height:1.4;}
+
+/* CAT FILTER */
+.cf{display:flex;flex-direction:column;gap:4px;}
+.cfbtn{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:var(--rsm);background:none;border:1.5px solid transparent;font-family:inherit;font-size:12px;color:var(--text2);cursor:pointer;text-align:left;transition:all .15s;}
+.cfbtn:hover{background:var(--tag-bg);border-color:var(--border);}
+.cfbtn.active{background:#fff3e8;border-color:var(--accent);color:var(--accent);font-weight:600;}
+.cc{font-size:10px;background:var(--border);border-radius:99px;padding:1px 7px;font-weight:600;color:var(--text3);}
+.cfbtn.active .cc{background:var(--accent);color:#fff;}
+
+/* MAIN */
+.main{padding-left:20px;}
+.mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.mtitle{font-family:'Baloo Tamma 2',sans-serif;font-size:21px;font-weight:700;}
+.mtitle span{color:var(--accent);}
+.macts{display:flex;gap:6px;}
+.bsm{padding:6px 12px;border-radius:var(--rsm);font-family:inherit;font-size:12px;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text2);transition:all .15s;white-space:nowrap;}
+.bsm:hover{border-color:var(--accent);color:var(--accent);}
+.bsm.danger:hover{border-color:#e53935;color:#e53935;}
+
+/* SECTION */
+.section{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden;}
+.shdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;background:var(--surface);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.shl{display:flex;align-items:center;gap:9px;}
+.sname{font-family:'Baloo Tamma 2',sans-serif;font-size:14px;font-weight:700;}
+.ssub{font-size:11px;color:var(--text3);margin-top:1px;}
+.sbadge{font-size:10px;font-weight:600;background:var(--tag-bg);border:1px solid var(--border);border-radius:99px;padding:2px 9px;color:var(--text2);}
+.stoggle{font-size:11px;color:var(--text3);transition:transform .2s;}
+.stoggle.open{transform:rotate(180deg);}
+
+/* ITEM ROW — 5 cols: checkbox | info | qty-control | edit-btn | del-btn */
+.irow{display:grid;grid-template-columns:30px 1fr auto 28px 28px;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #f5ece0;transition:background .12s;}
+.irow:last-child{border-bottom:none;}
+.irow:hover{background:#fffbf7;}
+.irow.checked{background:#f9f8f6;}
+.irow.editing{background:#eff6ff;border-left:3px solid var(--edit);}
+@keyframes fi{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.irow{animation:fi .18s ease;}
+
+.ichk{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.ichk.done{background:var(--accent2);border-color:var(--accent2);}
+.ichk.done::after{content:'✓';color:#fff;font-size:12px;font-weight:700;}
+
+.iinfo{min-width:0;}
+.ikn{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.irow.checked .ikn{text-decoration:line-through;color:var(--text3);}
+.imeta{display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap;}
+.ien{font-size:11px;color:var(--text3);}
+.ibrand{font-size:10px;background:#e8f5ed;color:#2a7d4f;border-radius:4px;padding:1px 5px;font-weight:600;}
+
+/* QTY CONTROL */
+.qctl{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.qbtn{width:24px;height:24px;border-radius:5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;line-height:1;font-family:inherit;}
+.qbtn:hover{border-color:var(--accent);color:var(--accent);background:#fff3e8;}
+.qdsp{font-size:12px;font-weight:600;color:var(--text);min-width:56px;text-align:center;background:var(--surface);border:1.5px solid var(--border);border-radius:5px;padding:3px 4px;white-space:nowrap;}
+/* step hint below qty */
+.qstep{font-size:9px;color:var(--text3);text-align:center;margin-top:1px;line-height:1;}
+
+/* ITEM ACTION BUTTONS (always visible, small) */
+.ibtn{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .12s;flex-shrink:0;}
+.ibtn-edit:hover{background:var(--edit-bg);border-color:var(--edit);}
+.ibtn-edit.active{background:var(--edit);border-color:var(--edit);}
+.ibtn-del:hover{background:#fde8e8;border-color:#e53935;}
+
+/* ── REMINDER PANEL ── */
+.rp{position:fixed;top:62px;right:0;width:370px;height:calc(100vh - 62px);background:var(--card);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(60,20,10,.1);z-index:150;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.rp.open{transform:translateX(0);}
+.rphdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);background:var(--card);}
+.rphdr h3{font-family:'Baloo Tamma 2',sans-serif;font-size:16px;font-weight:700;color:var(--rem);}
+.rpclose{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text3);}
+.rpclose:hover{background:#fde8e8;color:#e53935;}
+.rpbody{padding:18px;flex:1;overflow-y:auto;}
+.rem-main-card{background:var(--rem-bg);border:1.5px solid var(--rem-border);border-radius:var(--r);padding:16px;margin-bottom:14px;position:relative;}
+.rmc-label{font-size:11px;font-weight:700;color:var(--rem);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.rmc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #ddd6fe;}
+.rmc-row:last-of-type{border-bottom:none;padding-bottom:0;}
+.rmc-key{font-size:12px;color:var(--text2);}
+.rmc-val{font-size:13px;font-weight:600;color:var(--rem);}
+.rmc-edit-btn{width:100%;margin-top:12px;padding:8px;border-radius:var(--rsm);border:1.5px solid var(--rem-border);background:#fff;color:var(--rem);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.rmc-edit-btn:hover{background:var(--rem);color:#fff;}
+.rmc-del-btn{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:4px;border:none;background:none;cursor:pointer;color:#a78bfa;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.rmc-del-btn:hover{background:#fde8e8;color:#e53935;}
+.next-order-box{background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--rsm);padding:11px 13px;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.next-order-box.warn{background:#fffbeb;border-color:#fde68a;}
+.next-order-box.overdue{background:#fff8f8;border-color:#fca5a5;}
+.nob-icon{font-size:20px;}
+.nob-text{font-size:12px;color:var(--text2);line-height:1.5;}
+.nob-text strong{font-size:13px;color:var(--text);display:block;}
+.rem-items-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.rem-item-line{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.rem-item-line:last-child{border-bottom:none;}
+.ril-left{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.ril-name{color:var(--text);font-weight:500;}
+.ril-brand{font-size:10px;background:#e8f5ed;color:#2a7d4f;border-radius:4px;padding:1px 5px;font-weight:600;}
+.ril-qty{color:var(--rem);font-size:12px;font-weight:700;background:var(--rem-bg);border-radius:4px;padding:1px 6px;}
+.rp-empty{text-align:center;padding:36px 14px;color:var(--text3);font-size:13px;}
+.rp-empty-icon{font-size:34px;margin-bottom:8px;}
+.set-rem-btn{width:100%;padding:11px;background:var(--rem);color:#fff;border:none;border-radius:var(--rsm);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;}
+.set-rem-btn:hover{background:#6d28d9;}
+
+/* MODALS */
+.ov{position:fixed;inset:0;background:rgba(20,10,5,.5);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;padding:14px;}
+.ov.open{opacity:1;pointer-events:all;}
+.modal{background:var(--card);border-radius:var(--r);padding:24px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(40,20,5,.22);transform:translateY(16px) scale(.98);transition:transform .22s cubic-bezier(.4,0,.2,1);}
+.ov.open .modal{transform:translateY(0) scale(1);}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.mhd h2{font-family:'Baloo Tamma 2',sans-serif;font-size:17px;font-weight:700;}
+.mclose{width:27px;height:27px;border-radius:6px;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text3);}
+.mclose:hover{background:#fde8e8;color:#e53935;border-color:#e53935;}
+.modal .fg{margin-bottom:10px;}
+.modal .frow{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.mbtns{display:flex;gap:8px;margin-top:14px;}
+.mbtns button{flex:1;padding:10px;border-radius:var(--rsm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);transition:all .15s;}
+.brem{background:var(--rem)!important;color:#fff!important;border-color:var(--rem)!important;}
+.brem:hover{background:#6d28d9!important;}
+.bdanger{background:#ef4444!important;color:#fff!important;border-color:#ef4444!important;}
+.bdanger:hover{background:#dc2626!important;}
+.rem-modal-info{background:var(--rem-bg);border:1px solid var(--rem-border);border-radius:var(--rsm);padding:9px 11px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.6;}
+.rem-modal-info strong{color:var(--rem);}
+.delbox{background:#fff8f8;border:1.5px solid #fca5a5;border-radius:var(--rsm);padding:13px;text-align:center;margin-bottom:4px;}
+.delbox p{font-size:14px;font-weight:600;margin-bottom:4px;}
+.delbox small{color:var(--text3);font-size:12px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:#1a1209;color:#fff;padding:9px 18px;border-radius:99px;font-size:13px;z-index:400;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* SELECTED PANEL */
+.selected-panel{padding-left:18px;}
+.sel-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;position:sticky;top:84px;max-height:calc(100vh - 92px);display:flex;flex-direction:column;}
+.sel-hdr{padding:12px 14px;background:var(--accent2);display:flex;align-items:center;justify-content:space-between;}
+.sel-hdr-title{font-family:'Baloo Tamma 2',sans-serif;font-size:14px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px;}
+.sel-count{font-size:11px;background:rgba(255,255,255,.25);color:#fff;border-radius:99px;padding:2px 9px;font-weight:600;}
+.sel-body{overflow-y:auto;flex:1;padding:8px 0;}
+.sel-body::-webkit-scrollbar{width:3px;}.sel-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+.sel-empty{text-align:center;padding:28px 14px;color:var(--text3);font-size:12px;}
+.sel-empty-icon{font-size:28px;margin-bottom:6px;}
+.sel-cat-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 14px 4px;border-bottom:1px solid #f5ece0;}
+.sel-item{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #f5ece0;gap:8px;}
+.sel-item:last-child{border-bottom:none;}
+.sel-item-left{min-width:0;flex:1;}
+.sel-item-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sel-item-sub{font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sel-item-qty{font-size:12px;font-weight:700;color:var(--accent2);background:#e8f5ed;border-radius:4px;padding:2px 7px;white-space:nowrap;flex-shrink:0;}
+.sel-verify{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--accent2);flex-shrink:0;}
+.sel-verify::after{content:'✓';color:#fff;font-size:11px;font-weight:700;}
+.sel-footer{padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);}
+.sel-total{font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between;}
+.sel-total strong{font-size:13px;color:var(--text);}
+.sel-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+.sel-print-btn{padding:8px 6px;background:var(--accent2);color:#fff;border:none;border-radius:var(--rsm);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap;}
+.sel-print-btn:hover{background:#1d5e3a;}
+.sel-share-btn{padding:8px 6px;background:var(--rem);color:#fff;border:none;border-radius:var(--rsm);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap;}
+.sel-share-btn:hover{background:#6d28d9;}
+/* Share modal */
+.share-modal-options{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.share-opt{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--rsm);background:var(--surface);cursor:pointer;transition:all .15s;font-family:inherit;font-size:13px;color:var(--text);text-align:left;}
+.share-opt:hover{border-color:var(--rem);background:var(--rem-bg);color:var(--rem);}
+.share-opt-icon{font-size:20px;width:28px;text-align:center;flex-shrink:0;}
+.share-opt-label{font-weight:600;}
+.share-opt-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.share-opt:hover .share-opt-sub{color:var(--rem);}
+.share-preview{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 12px;font-size:12px;color:var(--text2);max-height:160px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;line-height:1.5;margin-bottom:12px;}
+
+/* PRINT — only selected items */
+@media print{
+  .no-print,header,.sidebar,.progbar,.macts,.ibtn,.qbtn,.ov,.toast,.rp,.install-bar,.selected-panel{display:none!important;}
+  .layout{display:block;padding:0;}
+  .main{padding:0;}
+  body{background:#fff;}
+  /* show print-only selected list */
+  #print-view{display:block!important;}
+}
+#print-view{display:none;}
+.print-title{font-family:'Baloo Tamma 2',sans-serif;font-size:20px;font-weight:700;margin-bottom:4px;color:#000;}
+.print-date{font-size:12px;color:#555;margin-bottom:16px;}
+.print-cat{font-size:13px;font-weight:700;color:#000;border-bottom:1.5px solid #000;padding-bottom:3px;margin:14px 0 6px;}
+.print-row{display:flex;align-items:center;gap:12px;padding:5px 0;border-bottom:1px solid #e0e0e0;font-size:13px;}
+.print-row:last-child{border-bottom:none;}
+.print-check{width:14px;height:14px;border:1.5px solid #555;border-radius:3px;flex-shrink:0;}
+.print-name{flex:1;color:#000;}
+.print-qty{font-weight:600;color:#000;min-width:70px;text-align:right;}
+.print-brand{font-size:11px;color:#555;margin-left:4px;}
+
+/* INSTALL BANNER */
+.install-bar{position:fixed;bottom:0;left:0;right:0;background:#1a1209;color:#fff;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:500;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 20px rgba(0,0,0,.25);}
+.install-bar.show{transform:translateY(0);}
+.install-bar-text{font-size:13px;line-height:1.4;flex:1;}
+.install-bar-text strong{display:block;font-size:14px;margin-bottom:2px;}
+.install-bar-btns{display:flex;gap:8px;flex-shrink:0;}
+.install-btn{padding:8px 16px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.install-btn-yes{background:var(--accent);color:#fff;}
+.install-btn-yes:hover{background:#b8430f;}
+.install-btn-no{background:rgba(255,255,255,.15);color:#fff;}
+.install-btn-no:hover{background:rgba(255,255,255,.25);}
+body{padding-bottom:env(safe-area-inset-bottom,0px);}
+
+@media(max-width:720px){
+  .layout{grid-template-columns:1fr;padding:12px;}
+  .sidebar{position:static;max-height:none;}
+  .main{padding-left:0;margin-top:14px;}
+  .selected-panel{padding-left:0;margin-top:14px;}
+  .sel-card{position:static;max-height:none;}
+  .rp{width:100%;}
+  .irow{grid-template-columns:28px 1fr auto 26px 26px;}
+  .qctl{gap:2px;}
+}
+@media(max-width:960px) and (min-width:721px){
+  .layout{grid-template-columns:260px 1fr;}
+  .selected-panel{display:none;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>🛒</span>
+    <div><div>ದಿನಸಿ ಪಟ್ಟಿ</div><div class="logo-sub">Grocery List App</div></div>
+  </div>
+  <div class="hacts">
+    <button class="hbtn hbtn-rem" onclick="toggleRP()">🔔 Monthly Reminder <span id="rbadge">!</span></button>
+    <button class="hbtn" onclick="printList()">🖨 Print</button>
+    <button class="hbtn" onclick="clearChecked()">✓ Clear done</button>
+  </div>
+</header>
+
+<div class="progbar">
+  <span class="prog-label" id="plabel">0 / 0 done</span>
+  <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+  <span class="prog-pct" id="ppct">0%</span>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <!-- ADD FORM (hidden when editing) -->
+    <div class="sc" id="add-panel">
+      <h3>➕ ಹೊಸ ವಸ್ತು ಸೇರಿಸಿ</h3>
+      <div class="fg"><label>ಕನ್ನಡ ಹೆಸರು *</label><input type="text" id="f-kn" placeholder="ಉದಾ: ಅಕ್ಕಿ"/></div>
+      <div class="fg"><label>English name</label><input type="text" id="f-en" placeholder="e.g. Rice"/></div>
+      <div class="fg"><label>Brand</label><input type="text" id="f-brand" placeholder="e.g. Aashirvaad, Dove"/></div>
+      <div class="frow">
+        <div class="fg"><label>Qty</label><input type="number" id="f-qty" value="1" min="1"/></div>
+        <div class="fg"><label>Unit</label>
+          <select id="f-unit"><option>kg</option><option>g</option><option>L</option><option>ml</option><option>pcs</option><option>pkt</option><option>box</option></select>
+        </div>
+      </div>
+      <div class="fg"><label>Category</label>
+        <select id="f-cat">
+          <option value="ಧಾನ್ಯ & ದ್ವಿದಳ">ಧಾನ್ಯ & ದ್ವಿದಳ (Grains)</option>
+          <option value="ಮಸಾಲೆ & ಎಣ್ಣೆ">ಮಸಾಲೆ & ಎಣ್ಣೆ (Spices)</option>
+          <option value="ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ">ಸ್ವಚ್ಛತೆ (Household)</option>
+          <option value="ಇತರ">ಇತರ (Others)</option>
+        </select>
+      </div>
+      <button class="btn-add" onclick="addItem()">+ ಪಟ್ಟಿಗೆ ಸೇರಿಸಿ</button>
+    </div>
+
+    <!-- EDIT PANEL (shown when ✏️ clicked, replaces add panel) -->
+    <div class="edit-panel" id="edit-panel">
+      <h3>
+        <span>✏️ ತಿದ್ದುಪಡಿ</span>
+        <button onclick="cancelEdit()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#64748b;" title="Cancel edit">✕</button>
+      </h3>
+      <div class="ep-note">ಬದಲಾವಣೆ ಮಾಡಿ ಮತ್ತು "ಉಳಿಸಿ" ಒತ್ತಿ.</div>
+      <div class="edit-item-label" id="ep-item-label">— <span>editing</span></div>
+      <div class="fg"><label>ಕನ್ನಡ ಹೆಸರು *</label><input type="text" id="e-kn"/></div>
+      <div class="fg"><label>English name</label><input type="text" id="e-en"/></div>
+      <div class="fg"><label>Brand</label><input type="text" id="e-brand"/></div>
+      <div class="frow">
+        <div class="fg"><label>Qty</label><input type="number" id="e-qty" min="1"/></div>
+        <div class="fg"><label>Unit</label>
+          <select id="e-unit"><option>kg</option><option>g</option><option>L</option><option>ml</option><option>pcs</option><option>pkt</option><option>box</option></select>
+        </div>
+      </div>
+      <div class="fg"><label>Category</label>
+        <select id="e-cat">
+          <option value="ಧಾನ್ಯ & ದ್ವಿದಳ">ಧಾನ್ಯ & ದ್ವಿದಳ</option>
+          <option value="ಮಸಾಲೆ & ಎಣ್ಣೆ">ಮಸಾಲೆ & ಎಣ್ಣೆ</option>
+          <option value="ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ">ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ</option>
+          <option value="ಇತರ">ಇತರ</option>
+        </select>
+      </div>
+      <div class="edit-panel-btns">
+        <button class="btn-cancel" onclick="cancelEdit()">✕ ರದ್ದು</button>
+        <button class="btn-save" onclick="saveEdit()">✓ ಉಳಿಸಿ</button>
+      </div>
+    </div>
+
+    <!-- CATEGORY FILTER -->
+    <div class="sc">
+      <h3>📂 ವಿಭಾಗಗಳು</h3>
+      <div class="cf" id="cat-filter"></div>
+    </div>
+
+  </aside>
+
+  <main class="main">
+    <div class="mhdr">
+      <div class="mtitle">ನನ್ನ <span>ಪಟ್ಟಿ</span></div>
+      <div class="macts">
+        <button class="bsm" onclick="uncheckAll()">↺ Reset</button>
+        <button class="bsm danger" onclick="openMod('clearall-mod')">🗑 Clear All</button>
+      </div>
+    </div>
+    <div id="sections"></div>
+  </main>
+
+  <!-- SELECTED / VERIFICATION PANEL -->
+  <aside class="selected-panel">
+    <div class="sel-card">
+      <div class="sel-hdr">
+        <div class="sel-hdr-title">✅ ಆಯ್ಕೆ ಪಟ್ಟಿ</div>
+        <span class="sel-count" id="sel-count">0</span>
+      </div>
+      <div class="sel-body" id="sel-body"></div>
+      <div class="sel-footer">
+        <div class="sel-total"><span>ಒಟ್ಟು ಆಯ್ತು</span><strong id="sel-total-txt">0 items</strong></div>
+        <div class="sel-btn-row">
+          <button class="sel-print-btn" onclick="printSelected()">🖨 Print</button>
+          <button class="sel-share-btn" onclick="openShareMod()">📤 Share</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- SHARE MODAL -->
+<div class="ov" id="share-mod">
+  <div class="modal" style="max-width:400px;">
+    <div class="mhd"><h2>📤 Share Selected List</h2><button class="mclose" onclick="closeMod('share-mod')">✕</button></div>
+    <div class="share-preview" id="share-preview"></div>
+    <div class="share-modal-options">
+      <button class="share-opt" onclick="shareWhatsApp()">
+        <span class="share-opt-icon">💬</span>
+        <div><div class="share-opt-label">WhatsApp</div><div class="share-opt-sub">Share via WhatsApp message</div></div>
+      </button>
+      <button class="share-opt" onclick="shareNative()" id="share-native-btn">
+        <span class="share-opt-icon">📱</span>
+        <div><div class="share-opt-label">Share via Phone</div><div class="share-opt-sub">SMS, email, any app on your phone</div></div>
+      </button>
+      <button class="share-opt" onclick="copyToClipboard()">
+        <span class="share-opt-icon">📋</span>
+        <div><div class="share-opt-label">Copy to Clipboard</div><div class="share-opt-sub">Paste anywhere manually</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT VIEW (only selected, hidden on screen) -->
+<div id="print-view">
+  <div class="print-title">🛒 ದಿನಸಿ ಪಟ್ಟಿ — Selected Items</div>
+  <div class="print-date" id="print-date"></div>
+  <div id="print-body"></div>
+</div>
+
+<!-- ── REMINDER PANEL ── -->
+<div class="rp" id="rp">
+  <div class="rphdr"><h3>🔔 Monthly Order Reminder</h3><button class="rpclose" onclick="toggleRP()">✕</button></div>
+  <div class="rpbody" id="rpbody"></div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="ov" id="del-mod">
+  <div class="modal" style="max-width:360px;">
+    <div class="mhd"><h2>🗑 ಅಳಿಸಲೇ?</h2><button class="mclose" onclick="closeMod('del-mod')">✕</button></div>
+    <div class="delbox"><p id="del-name"></p><small>ಈ ವಸ್ತುವನ್ನು ಪಟ್ಟಿಯಿಂದ ಶಾಶ್ವತವಾಗಿ ತೆಗೆದುಹಾಕಲಾಗುವುದು.</small></div>
+    <div class="mbtns">
+      <button onclick="closeMod('del-mod')">ರದ್ದು</button>
+      <button class="bdanger" onclick="confirmDel()">🗑 ಹೌದು, ಅಳಿಸಿ</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMINDER MODAL -->
+<div class="ov" id="rem-mod">
+  <div class="modal" style="max-width:420px;">
+    <div class="mhd"><h2>🔔 Monthly Reminder</h2><button class="mclose" onclick="closeMod('rem-mod')">✕</button></div>
+    <div class="rem-modal-info">
+      ಪ್ರತಿ ತಿಂಗಳು ಒಂದು ದಿನ ಆಯ್ಕೆ ಮಾಡಿ — ಆ ದಿನ <strong>ದಿನಸಿ ಆರ್ಡರ್ ಮಾಡಲು</strong> reminder ಬರುತ್ತದೆ.
+    </div>
+    <div class="frow">
+      <div class="fg"><label>📅 Day of month (1–28)</label><input type="number" id="r-day" min="1" max="28" value="1"/></div>
+      <div class="fg"><label>⏰ Time</label><input type="time" id="r-time" value="09:00"/></div>
+    </div>
+    <div class="fg"><label>📝 Note (optional)</label><input type="text" id="r-note" placeholder="e.g. Order from BigBasket…"/></div>
+    <div class="mbtns">
+      <button onclick="closeMod('rem-mod')">ರದ್ದು</button>
+      <button class="brem" onclick="saveReminder()">🔔 Reminder ಉಳಿಸಿ</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR ALL MODAL -->
+<div class="ov" id="clearall-mod">
+  <div class="modal" style="max-width:340px;">
+    <div class="mhd"><h2>⚠️ ಎಲ್ಲ ತೆಗೆಯಲೇ?</h2><button class="mclose" onclick="closeMod('clearall-mod')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:4px;">ಎಲ್ಲ ವಸ್ತುಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ತೆಗೆದುಹಾಕಲಾಗುವುದು.</p>
+    <div class="mbtns">
+      <button onclick="closeMod('clearall-mod')">ರದ್ದು</button>
+      <button class="bdanger" onclick="clearAll()">🗑 ಹೌದು, ಎಲ್ಲ ತೆಗೆ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PWA INSTALL BANNER -->
+<div class="install-bar" id="install-bar">
+  <div class="install-bar-text">
+    <strong>&#x1F4F2; App Install &#x0CAE;&#x0CBE;&#x0CA1;&#x0CBF;</strong>
+    Home screen &#x0C97;&#x0CC6; &#x0CB8;&#x0CC7;&#x0CB0;&#x0CBF;&#x0CB8;&#x0CBF; &mdash; offline &#x0C95;&#x0CC2;&#x0CA1; &#x0C95;&#x0CC6;&#x0CB2;&#x0CB8; &#x0CAE;&#x0CBE;&#x0CA1;&#x0CC1;&#x0CA4;&#x0CCD;&#x0CA4;&#x0CA6;&#x0CC6;!
+  </div>
+  <div class="install-bar-btns">
+    <button class="install-btn install-btn-no" onclick="dismissInstall()">Later</button>
+    <button class="install-btn install-btn-yes" onclick="doInstall()">&#x1F4F2; Install</button>
+  </div>
+</div>
+
+<script>
+if('serviceWorker'in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(r=>console.log('SW:',r.scope))
+      .catch(e=>console.warn('SW err:',e));
+  });
+}
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();installPrompt=e;
+  setTimeout(()=>{if(!localStorage.getItem('pwa-dismissed'))document.getElementById('install-bar').classList.add('show');},3000);
+});
+function doInstall(){
+  if(!installPrompt)return;
+  installPrompt.prompt();
+  installPrompt.userChoice.then(r=>{
+    if(r.outcome==='accepted')showToast('App install &#x0C86;&#x0CAF;&#x0CBF;&#x0CA4;&#x0CC1;!');
+    installPrompt=null;document.getElementById('install-bar').classList.remove('show');
+  });
+}
+function dismissInstall(){
+  document.getElementById('install-bar').classList.remove('show');
+  localStorage.setItem('pwa-dismissed','1');
+}
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('install-bar').classList.remove('show');
+});
+
+const CATS={
+  "ಧಾನ್ಯ & ದ್ವಿದಳ":{icon:"🌾",sub:"Grains & Pulses"},
+  "ಮಸಾಲೆ & ಎಣ್ಣೆ":{icon:"🌶",sub:"Spices & Oil"},
+  "ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ":{icon:"🧴",sub:"Household & Cleaning"},
+  "ಇತರ":{icon:"🛍",sub:"Others"}
+};
+
+// Smart step: g and ml → 10; everything else → 1
+function step(unit){ return (unit==='g'||unit==='ml') ? 10 : 1; }
+function minQty(unit){ return (unit==='g'||unit==='ml') ? 10 : 1; }
+
+let items=[
+  {id:1, kn:"ಅಕ್ಕಿ",               en:"Rice",               brand:"Daawat",     qty:5,   unit:"kg",  cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:2, kn:"ಗೋಧಿ ಹಿಟ್ಟು",         en:"Wheat flour",        brand:"Aashirvaad", qty:2,   unit:"kg",  cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:3, kn:"ತೊಗರಿ ಬೇಳೆ",          en:"Toor dal",           brand:"",           qty:1,   unit:"kg",  cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:4, kn:"ಉದ್ದಿನ ಬೇಳೆ",         en:"Urad dal",           brand:"",           qty:500, unit:"g",   cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:5, kn:"ಕಡಲೆ ಬೇಳೆ",           en:"Chana dal",          brand:"",           qty:500, unit:"g",   cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:6, kn:"ಹೆಸರು ಬೇಳೆ",          en:"Moong dal",          brand:"",           qty:500, unit:"g",   cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:7, kn:"ರಾಗಿ",                en:"Ragi",               brand:"",           qty:1,   unit:"kg",  cat:"ಧಾನ್ಯ & ದ್ವಿದಳ",       checked:false},
+  {id:8, kn:"ಅಡಿಗೆ ಎಣ್ಣೆ",         en:"Cooking oil",        brand:"Fortune",    qty:1,   unit:"L",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:9, kn:"ಅರಿಶಿನ",              en:"Turmeric",           brand:"MDH",        qty:100, unit:"g",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:10,kn:"ಮೆಣಸಿನ ಪುಡಿ",         en:"Chilli powder",      brand:"",           qty:200, unit:"g",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:11,kn:"ಕೊತ್ತಂಬರಿ ಪುಡಿ",      en:"Coriander powder",   brand:"",           qty:200, unit:"g",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:12,kn:"ಉಪ್ಪು",               en:"Salt",               brand:"Tata",       qty:1,   unit:"kg",  cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:13,kn:"ಸಕ್ಕರೆ",              en:"Sugar",              brand:"",           qty:1,   unit:"kg",  cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:14,kn:"ಜೀರಿಗೆ",              en:"Cumin",              brand:"",           qty:100, unit:"g",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:15,kn:"ಸಾಸಿವೆ",              en:"Mustard seeds",      brand:"",           qty:100, unit:"g",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:16,kn:"ಗರಂ ಮಸಾಲೆ",           en:"Garam masala",       brand:"Everest",    qty:100, unit:"g",   cat:"ಮಸಾಲೆ & ಎಣ್ಣೆ",        checked:false},
+  {id:17,kn:"ಸ್ನಾನದ ಸಾಬೂನು",       en:"Bathing soap",       brand:"Dove",       qty:3,   unit:"pcs", cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:18,kn:"ಬಟ್ಟೆ ತೊಳೆಯುವ ಸಾಬೂನು",en:"Washing soap bar",   brand:"Rin",        qty:2,   unit:"pcs", cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:19,kn:"ವಾಷಿಂಗ್ ಪೌಡರ್",       en:"Washing powder",     brand:"Surf Excel", qty:1,   unit:"kg",  cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:20,kn:"ಪಾತ್ರೆ ತೊಳೆಯುವ ಸಾಬೂನು",en:"Dish wash",         brand:"Vim",        qty:1,   unit:"pcs", cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:21,kn:"ಶಾಂಪೂ",               en:"Shampoo",            brand:"Clinic Plus",qty:1,   unit:"pcs", cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:22,kn:"ಟೂತ್‌ಪೇಸ್ಟ್",         en:"Toothpaste",         brand:"Colgate",    qty:1,   unit:"pcs", cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:23,kn:"ಫಿನಾಯಿಲ್",            en:"Floor cleaner",      brand:"Lizol",      qty:500, unit:"ml",  cat:"ಸ್ವಚ್ಛತೆ & ಗೃಹೋಪಯೋಗಿ", checked:false},
+  {id:24,kn:"ಚಹಾ",                 en:"Tea",                brand:"Taj Mahal",  qty:250, unit:"g",   cat:"ಇತರ",                   checked:false},
+  {id:25,kn:"ಕಾಫಿ ಪುಡಿ",           en:"Coffee powder",      brand:"Nescafe",    qty:200, unit:"g",   cat:"ಇತರ",                   checked:false},
+  {id:26,kn:"ಬೆಳ್ಳುಳ್ಳಿ",           en:"Garlic",             brand:"",           qty:250, unit:"g",   cat:"ಇತರ",                   checked:false},
+  {id:27,kn:"ಶುಂಠಿ",               en:"Ginger",             brand:"",           qty:250, unit:"g",   cat:"ಇತರ",                   checked:false},
+];
+
+let reminder=null;
+let nid=28, activeFilter="all", editId=null, delId=null;
+let collapsed={}, rpOpen=false;
+
+// ── RENDER ────────────────────────────────────────────
+function render(){ renderFilter(); renderSections(); renderProgress(); renderRP(); updateBadge(); renderSelected(); }
+
+function renderProgress(){
+  const total=items.length, done=items.filter(i=>i.checked).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('plabel').textContent=`${done} / ${total} done`;
+  document.getElementById('pfill').style.width=pct+'%';
+  document.getElementById('ppct').textContent=pct+'%';
+}
+
+function renderFilter(){
+  const el=document.getElementById('cat-filter');
+  const cats=["all","pending",...Object.keys(CATS)];
+  el.innerHTML=cats.map(cat=>{
+    let lbl,cnt;
+    if(cat==="all"){lbl="🗒 ಎಲ್ಲ (All)";cnt=items.length;}
+    else if(cat==="pending"){lbl="⏳ ಬಾಕಿ";cnt=items.filter(i=>!i.checked).length;}
+    else{lbl=`${CATS[cat].icon} ${cat}`;cnt=items.filter(i=>i.cat===cat).length;}
+    return `<button class="cfbtn ${activeFilter===cat?'active':''}" onclick="setFilter('${cat}')"><span>${lbl}</span><span class="cc">${cnt}</span></button>`;
+  }).join('');
+}
+
+function renderSections(){
+  const el=document.getElementById('sections');
+  const filtered=activeFilter==="all"?items:activeFilter==="pending"?items.filter(i=>!i.checked):items.filter(i=>i.cat===activeFilter);
+  const cats=(activeFilter==="all"||activeFilter==="pending")?Object.keys(CATS):[activeFilter];
+  let html='',any=false;
+  cats.forEach(cat=>{
+    const ci=filtered.filter(i=>i.cat===cat);
+    if(!ci.length)return;
+    any=true;
+    const info=CATS[cat]||{icon:"📦",sub:""};
+    const open=!collapsed[cat];
+    html+=`<div class="section">
+      <div class="shdr" onclick="toggleSec('${cat}')">
+        <div class="shl"><span style="font-size:19px">${info.icon}</span>
+          <div><div class="sname">${cat}</div><div class="ssub">${info.sub}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="sbadge">${ci.length} items</span>
+          <span class="stoggle ${open?'open':''}">▼</span>
+        </div>
+      </div>
+      ${open?`<div>${ci.map(irow).join('')}</div>`:''}
+    </div>`;
+  });
+  if(!any)html=`<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:34px;margin-bottom:8px">🛒</div>ಯಾವುದೇ ವಸ್ತು ಇಲ್ಲ</div>`;
+  el.innerHTML=html;
+}
+
+function irow(item){
+  const s=step(item.unit);
+  const isEditing=editId===item.id;
+  const stepLabel=item.unit==='g'||item.unit==='ml' ? `±${s}${item.unit}` : `±${s}`;
+  return `<div class="irow ${item.checked?'checked':''} ${isEditing?'editing':''}" id="row-${item.id}">
+    <div class="ichk ${item.checked?'done':''}" onclick="toggle(${item.id})"></div>
+    <div class="iinfo">
+      <div class="ikn">${item.kn}</div>
+      <div class="imeta">
+        ${item.en?`<span class="ien">${item.en}</span>`:''}
+        ${item.brand?`<span class="ibrand">🏷 ${item.brand}</span>`:''}
+      </div>
+    </div>
+    <div>
+      <div class="qctl">
+        <button class="qbtn" onclick="chqty(${item.id},-1)">−</button>
+        <span class="qdsp">${item.qty} ${item.unit}</span>
+        <button class="qbtn" onclick="chqty(${item.id},1)">+</button>
+      </div>
+      <div class="qstep">${stepLabel} per tap</div>
+    </div>
+    <button class="ibtn ibtn-edit ${isEditing?'active':''}" onclick="openEdit(${item.id})" title="${isEditing?'Currently editing':'Edit item'}">✏️</button>
+    <button class="ibtn ibtn-del" onclick="openDelMod(${item.id})" title="Delete item">🗑</button>
+  </div>`;
+}
+
+// ── REMINDER PANEL ────────────────────────────────────
+function renderRP(){
+  const body=document.getElementById('rpbody');
+  const now=new Date();
+  if(!reminder){
+    body.innerHTML=`
+      <div class="rp-empty"><div class="rp-empty-icon">🔔</div>
+        <div style="font-weight:600;margin-bottom:6px">ಯಾವ Reminder ಇಲ್ಲ</div>
+        <div style="margin-bottom:16px;font-size:12px">ಪ್ರತಿ ತಿಂಗಳು ದಿನಸಿ ಆರ್ಡರ್ ಮಾಡಲು ಒಂದು reminder ಸೆಟ್ ಮಾಡಿ.</div>
+      </div>
+      <button class="set-rem-btn" onclick="openRemMod()">🔔 Monthly Reminder ಸೆಟ್ ಮಾಡಿ</button>`;
+    return;
+  }
+  let nextDate=new Date(now.getFullYear(),now.getMonth(),reminder.day);
+  if(nextDate<=now) nextDate=new Date(now.getFullYear(),now.getMonth()+1,reminder.day);
+  const daysLeft=Math.ceil((nextDate-now)/(1000*60*60*24));
+  const boxCls=daysLeft<=3?'warn overdue':'';
+  const statusMsg=daysLeft<=0?'⚠ Order overdue — order now!':daysLeft<=3?`🔴 Only ${daysLeft} day${daysLeft===1?'':'s'} left!`:daysLeft<=7?`🟡 ${daysLeft} days until order`:null;
+  const nextStr=nextDate.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  const itemRows=items.map(i=>`
+    <div class="rem-item-line">
+      <div class="ril-left">
+        <span class="ril-name">${i.kn}</span>
+        ${i.en?`<span style="font-size:11px;color:var(--text3)">(${i.en})</span>`:''}
+        ${i.brand?`<span class="ril-brand">${i.brand}</span>`:''}
+      </div>
+      <span class="ril-qty">${i.qty} ${i.unit}</span>
+    </div>`).join('');
+
+  body.innerHTML=`
+    ${statusMsg?`<div class="next-order-box ${boxCls}"><div class="nob-icon">📦</div><div class="nob-text"><strong>${statusMsg}</strong>Next: ${nextStr}</div></div>`:''}
+    ${!statusMsg?`<div class="next-order-box"><div class="nob-icon">📅</div><div class="nob-text"><strong>Next order in ${daysLeft} days</strong>${nextStr}</div></div>`:''}
+    <div class="rem-main-card">
+      <div class="rmc-label">🔔 Reminder Details</div>
+      <div class="rmc-row"><span class="rmc-key">📅 Every month on day</span><span class="rmc-val">${reminder.day}${ord(reminder.day)}</span></div>
+      <div class="rmc-row"><span class="rmc-key">⏰ Time</span><span class="rmc-val">${reminder.time||'09:00'}</span></div>
+      ${reminder.note?`<div class="rmc-row"><span class="rmc-key">📝 Note</span><span class="rmc-val" style="font-size:12px;color:var(--text2)">${reminder.note}</span></div>`:''}
+      <div class="rmc-row"><span class="rmc-key">📦 Items in list</span><span class="rmc-val">${items.length} items</span></div>
+      <button class="rmc-del-btn" onclick="deleteReminder()" title="Remove reminder">✕</button>
+      <button class="rmc-edit-btn" onclick="openRemMod()">✏️ Edit Reminder</button>
+    </div>
+    <div class="rem-items-title">📋 Order List with Quantities</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--rsm);padding:0 12px 2px;">${itemRows}</div>`;
+}
+
+function ord(n){const s=["th","st","nd","rd"],v=n%100;return s[(v-20)%10]||s[v]||s[0];}
+
+function updateBadge(){
+  const b=document.getElementById('rbadge');
+  if(!reminder){b.style.display='none';return;}
+  const now=new Date();
+  const next=new Date(now.getFullYear(),now.getMonth(),reminder.day);
+  if(next<=now) next.setMonth(next.getMonth()+1);
+  const days=Math.ceil((next-now)/(1000*60*60*24));
+  if(days<=3){b.textContent=days+'d';b.style.display='block';}
+  else{b.style.display='none';}
+}
+function toggleRP(){rpOpen=!rpOpen;document.getElementById('rp').classList.toggle('open',rpOpen);}
+
+// ── ITEM ACTIONS ──────────────────────────────────────
+function toggle(id){const i=items.find(x=>x.id===id);if(i){i.checked=!i.checked;render();}}
+
+function chqty(id,dir){
+  const i=items.find(x=>x.id===id);
+  if(!i)return;
+  const s=step(i.unit);
+  const mn=minQty(i.unit);
+  i.qty=Math.max(mn, i.qty+(dir*s));
+  render();
+}
+
+function setFilter(c){activeFilter=c;render();}
+function toggleSec(c){collapsed[c]=!collapsed[c];render();}
+
+// ── EDIT (in sidebar) ─────────────────────────────────
+function openEdit(id){
+  if(editId===id){ cancelEdit(); return; } // toggle off
+  const item=items.find(i=>i.id===id);
+  if(!item)return;
+  editId=id;
+  // show edit panel, hide add panel
+  document.getElementById('add-panel').style.display='none';
+  document.getElementById('edit-panel').classList.add('active');
+  document.getElementById('ep-item-label').innerHTML=`${item.kn} <span>${item.en||''}</span>`;
+  document.getElementById('e-kn').value=item.kn;
+  document.getElementById('e-en').value=item.en;
+  document.getElementById('e-brand').value=item.brand;
+  document.getElementById('e-qty').value=item.qty;
+  document.getElementById('e-unit').value=item.unit;
+  document.getElementById('e-cat').value=item.cat;
+  // scroll sidebar to top
+  document.querySelector('.sidebar').scrollTo({top:0,behavior:'smooth'});
+  render(); // re-render to highlight the editing row
+}
+
+function cancelEdit(){
+  editId=null;
+  document.getElementById('add-panel').style.display='';
+  document.getElementById('edit-panel').classList.remove('active');
+  render();
+}
+
+function saveEdit(){
+  const item=items.find(i=>i.id===editId);
+  if(!item)return;
+  item.kn=document.getElementById('e-kn').value.trim()||item.kn;
+  item.en=document.getElementById('e-en').value.trim();
+  item.brand=document.getElementById('e-brand').value.trim();
+  item.qty=parseInt(document.getElementById('e-qty').value)||item.qty;
+  item.unit=document.getElementById('e-unit').value;
+  item.cat=document.getElementById('e-cat').value;
+  cancelEdit(); // also calls render
+  showToast("✓ ಬದಲಾವಣೆ ಉಳಿಸಲಾಗಿದೆ!");
+}
+
+// ── DELETE ────────────────────────────────────────────
+function openDelMod(id){
+  const item=items.find(i=>i.id===id);
+  if(!item)return;
+  if(editId===id) cancelEdit();
+  delId=id;
+  document.getElementById('del-name').textContent=item.kn+(item.en?` (${item.en})`:'');
+  openMod('del-mod');
+}
+function confirmDel(){
+  items=items.filter(i=>i.id!==delId);
+  closeMod('del-mod');render();showToast("🗑 ವಸ್ತು ತೆಗೆದುಹಾಕಲಾಗಿದೆ");
+}
+
+// ── REMINDER ──────────────────────────────────────────
+function openRemMod(){
+  document.getElementById('r-day').value=reminder?reminder.day:1;
+  document.getElementById('r-time').value=reminder?reminder.time:'09:00';
+  document.getElementById('r-note').value=reminder?reminder.note:'';
+  openMod('rem-mod');
+}
+function saveReminder(){
+  const day=parseInt(document.getElementById('r-day').value);
+  if(!day||day<1||day>28){showToast("1 ರಿಂದ 28 ರ ಮಧ್ಯೆ ದಿನ ನಮೂದಿಸಿ");return;}
+  reminder={day,time:document.getElementById('r-time').value,note:document.getElementById('r-note').value.trim()};
+  if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+  closeMod('rem-mod');
+  if(!rpOpen){rpOpen=true;document.getElementById('rp').classList.add('open');}
+  render();showToast("🔔 Monthly reminder ಸೆಟ್ ಆಯಿತು!");
+}
+function deleteReminder(){reminder=null;render();showToast("Reminder ತೆಗೆದಿದೆ");}
+
+// ── ADD ITEM ──────────────────────────────────────────
+function addItem(){
+  const kn=document.getElementById('f-kn').value.trim();
+  if(!kn){document.getElementById('f-kn').focus();showToast("ಹೆಸರು ನಮೂದಿಸಿ!");return;}
+  items.push({id:nid++,kn,en:document.getElementById('f-en').value.trim(),brand:document.getElementById('f-brand').value.trim(),qty:parseInt(document.getElementById('f-qty').value)||1,unit:document.getElementById('f-unit').value,cat:document.getElementById('f-cat').value,checked:false});
+  ['f-kn','f-en','f-brand'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-qty').value=1;
+  render();showToast("✓ ಪಟ್ಟಿಗೆ ಸೇರಿಸಲಾಗಿದೆ!");
+}
+
+// ── BULK ──────────────────────────────────────────────
+function clearChecked(){
+  const n=items.filter(i=>i.checked).length;
+  if(!n){showToast("ಯಾವ ವಸ್ತುವೂ ಟಿಕ್ ಆಗಿಲ್ಲ");return;}
+  items=items.filter(i=>!i.checked);
+  render();showToast(`${n} items ತೆಗೆದಿವೆ`);
+}
+function uncheckAll(){items.forEach(i=>i.checked=false);render();showToast("Reset ಮಾಡಲಾಗಿದೆ");}
+function clearAll(){items=[];closeMod('clearall-mod');render();showToast("ಪಟ್ಟಿ ಖಾಲಿ ಮಾಡಲಾಗಿದೆ");}
+function printList(){printSelected();}
+
+
+// ── SELECTED PANEL ────────────────────────────────────
+function renderSelected(){
+  const checked=items.filter(i=>i.checked);
+  const count=checked.length;
+  document.getElementById('sel-count').textContent=count;
+  document.getElementById('sel-total-txt').textContent=count+' item'+(count===1?'':'s');
+  const body=document.getElementById('sel-body');
+  if(!count){
+    body.innerHTML=`<div class="sel-empty"><div class="sel-empty-icon">☑️</div><div>ಇನ್ನೂ ಯಾವ ವಸ್ತು ✓ ಆಗಿಲ್ಲ</div><div style="margin-top:4px;font-size:11px">Items tick ಮಾಡಿದಾಗ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ</div></div>`;
+    return;
+  }
+  // Group by category
+  let html='';
+  Object.keys(CATS).forEach(cat=>{
+    const ci=checked.filter(i=>i.cat===cat);
+    if(!ci.length)return;
+    html+=`<div class="sel-cat-label">${CATS[cat].icon} ${cat}</div>`;
+    html+=ci.map(item=>`
+      <div class="sel-item">
+        <div class="sel-item-left">
+          <div class="sel-item-name">${item.kn}</div>
+          <div class="sel-item-sub">${[item.en,item.brand].filter(Boolean).join(' · ')}</div>
+        </div>
+        <span class="sel-item-qty">${item.qty} ${item.unit}</span>
+        <div class="sel-verify"></div>
+      </div>`).join('');
+  });
+  body.innerHTML=html;
+}
+
+function printSelected(){
+  const checked=items.filter(i=>i.checked);
+  if(!checked.length){showToast("ಯಾವ ವಸ್ತು ✓ ಆಗಿಲ್ಲ — ಮೊದಲು items tick ಮಾಡಿ");return;}
+  // Build print body
+  document.getElementById('print-date').textContent='Date: '+new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  let html='';
+  Object.keys(CATS).forEach(cat=>{
+    const ci=checked.filter(i=>i.cat===cat);
+    if(!ci.length)return;
+    html+=`<div class="print-cat">${CATS[cat].icon} ${cat}</div>`;
+    html+=ci.map(item=>`
+      <div class="print-row">
+        <div class="print-check"></div>
+        <span class="print-name">${item.kn}${item.en?' ('+item.en+')':''}</span>
+        ${item.brand?`<span class="print-brand">[${item.brand}]</span>`:''}
+        <span class="print-qty">${item.qty} ${item.unit}</span>
+      </div>`).join('');
+  });
+  document.getElementById('print-body').innerHTML=html;
+  window.print();
+}
+
+
+// ── SHARE ─────────────────────────────────────────────
+function buildShareText(){
+  const checked=items.filter(i=>i.checked);
+  if(!checked.length) return null;
+  const date=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  let text=`🛒 ದಿನಸಿ ಪಟ್ಟಿ (${date})\n`;
+  text+='─'.repeat(28)+'\n';
+  Object.keys(CATS).forEach(cat=>{
+    const ci=checked.filter(i=>i.cat===cat);
+    if(!ci.length)return;
+    text+=`\n${CATS[cat].icon} ${cat}\n`;
+    ci.forEach(item=>{
+      text+=`  • ${item.kn}`;
+      if(item.en) text+=` (${item.en})`;
+      text+=` — ${item.qty} ${item.unit}`;
+      if(item.brand) text+=` [${item.brand}]`;
+      text+='\n';
+    });
+  });
+  text+='\n─'.repeat(14)+'\n';
+  text+=`✅ ಒಟ್ಟು ${checked.length} items`;
+  return text;
+}
+
+function openShareMod(){
+  const checked=items.filter(i=>i.checked);
+  if(!checked.length){showToast("ಯಾವ ವಸ್ತು ✓ ಆಗಿಲ್ಲ — ಮೊದಲು items tick ಮಾಡಿ");return;}
+  const text=buildShareText();
+  document.getElementById('share-preview').textContent=text;
+  // Show/hide native share based on support
+  document.getElementById('share-native-btn').style.display=
+    (navigator.share)?'flex':'none';
+  openMod('share-mod');
+}
+
+function shareWhatsApp(){
+  const text=buildShareText();
+  if(!text)return;
+  const url='https://wa.me/?text='+encodeURIComponent(text);
+  window.open(url,'_blank');
+  closeMod('share-mod');
+}
+
+async function shareNative(){
+  const text=buildShareText();
+  if(!text||!navigator.share)return;
+  try{
+    await navigator.share({title:'ದಿನಸಿ ಪಟ್ಟಿ — Grocery List',text});
+    closeMod('share-mod');
+    showToast("✓ Shared successfully!");
+  }catch(e){
+    if(e.name!=='AbortError') showToast("Share failed — try copy instead");
+  }
+}
+
+async function copyToClipboard(){
+  const text=buildShareText();
+  if(!text)return;
+  try{
+    await navigator.clipboard.writeText(text);
+    closeMod('share-mod');
+    showToast("📋 Copied to clipboard!");
+  }catch(e){
+    // Fallback for older browsers
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    closeMod('share-mod');
+    showToast("📋 Copied to clipboard!");
+  }
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────
+function openMod(id){document.getElementById(id).classList.add('open');}
+function closeMod(id){document.getElementById(id).classList.remove('open');}
+
+// ── TOAST ─────────────────────────────────────────────
+let tt;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ── EVENTS ────────────────────────────────────────────
+document.getElementById('f-kn').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
+['del-mod','rem-mod','clearall-mod','share-mod'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))closeMod(id);});
+});
+
+// BROWSER NOTIFICATION CHECK
+setInterval(()=>{
+  if(!reminder||!('Notification'in window)||Notification.permission!=='granted')return;
+  const now=new Date();
+  if(now.getDate()===reminder.day){
+    const[h,m]=(reminder.time||'09:00').split(':');
+    if(now.getHours()===+h&&now.getMinutes()===+m){
+      new Notification('🛒 ದಿನಸಿ ಆರ್ಡರ್ ಮಾಡಿ!',{body:`${items.length} items ಪಟ್ಟಿಯಲ್ಲಿದೆ. ಇಂದು ಆರ್ಡರ್ ಮಾಡಿ.`});
+    }
+  }
+},60000);
+
+render();
+</script>
+</body>
+</html>
