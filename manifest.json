@@ -1,0 +1,26 @@
+{
+  "name": "ದಿನಸಿ ಪಟ್ಟಿ – Grocery List",
+  "short_name": "ದಿನಸಿ ಪಟ್ಟಿ",
+  "description": "Monthly Kannada grocery list with reminders",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdf6ee",
+  "theme_color": "#d4541a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "productivity", "utilities"],
+  "lang": "kn"
+}
